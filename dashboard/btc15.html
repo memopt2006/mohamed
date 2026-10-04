@@ -128,7 +128,7 @@ function current(){
 function renderCall(){
   const el = document.getElementById("call"), r = current();
   if (!r){
-    const next = new Date(Math.ceil(Date.now()/900000)*900000);
+    const next = new Date(Math.floor(Date.now()/900000)*900000);
     el.className = "call";
     el.innerHTML = `<div class="muted">No call for this window yet.</div>
       <div class="row" style="margin-top:8px">Next call posts about 2 min after ${fmtT(next)}.</div>`;
