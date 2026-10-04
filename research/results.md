@@ -44,3 +44,24 @@ Calibration: on the holdout the raw model is overconfident (log-odds slope
   through the window.
 - In 12% of window-minutes the fitted fair value differs from the plain
   random-walk price by 5¢ or more.
+
+## Live check and Prime tier (added 2026-10-04)
+- First 54 live calls (Sat night to Sun morning): Strong 4/7, Medium 7/17,
+  Weak 16/30. Far too few to judge. BTC climbed slowly all morning, which is
+  the hardest case for a snap-back model.
+- Live features match the research pipeline. The start price differed by up to
+  about $12 when only one exchange's first minute had arrived, so calls now wait
+  for both exchanges (with a fallback after 4 minutes).
+- Breakdown of Strong calls, consistent in both the selection period and the
+  holdout:
+
+| Strong calls when… | Selection | Holdout |
+|---|---|---|
+| \|z_240\| ≥ 0.868 (big 4-hour move, top third) | 59.5% | 58.1% (n=1,149) |
+| …and 18:00–05:59 UTC (2 PM–2 AM New York) | 62.0% | 62.8% (n=484) |
+| other Strong calls | – | 53.4% |
+
+- New tiers stored with each call: `prime+`, `prime`, `strong`, `medium`,
+  `weak`. Only Prime is "Buy". The |z_240| cutoff came from the selection
+  period. The time-of-day split was spotted with the holdout in view, so treat
+  Prime ★ as promising, not proven, until live data confirms it.

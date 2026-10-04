@@ -4,7 +4,9 @@
 alter table public.btc15_signals
   add column if not exists p_up float8,
   add column if not exists rv60 float8,
-  add column if not exists model text not null default 'fade1h';
+  add column if not exists model text not null default 'fade1h',
+  add column if not exists z240 float8,
+  add column if not exists tier text;
 
 -- scorecard now tracks the new model only
 create or replace view public.btc15_scorecard as
@@ -16,6 +18,19 @@ create or replace view public.btc15_scorecard as
     round(avg(contract_price), 3) as avg_entry
   from public.btc15_signals where model = 'logit10'
   group by strength;
+
+-- advice success by tier (tier is fixed when the call is posted)
+create or replace view public.btc15_tracker as
+  select coalesce(tier, case when greatest(p_up, 1 - p_up) >= 0.55 then 'strong'
+                             when greatest(p_up, 1 - p_up) >= 0.53 then 'medium'
+                             else 'weak' end) as tier,
+         count(*) filter (where correct is not null) as settled,
+         count(*) filter (where correct) as wins,
+         round(100.0 * avg(correct::int), 1) as hit_rate_pct
+  from public.btc15_signals
+  where model = 'logit10'
+  group by 1;
+grant select on public.btc15_tracker to anon, authenticated;
 
 -- refresh candles on every fetch so a minute read too early gets corrected
 create or replace function research.ingest() returns int
@@ -101,7 +116,8 @@ language sql stable security definer set search_path = research as $$
     ((n.typ1 - n.p15) / n.p) / (n.rv240 * sqrt(15)),
     n.rv15 / nullif(n.rv240, 0),
     n.lp - n.lp1, (n.p - n.lo240) / nullif(n.hi240 - n.lo240, 0), n.rv60, n.p - n.p15, n.p - n.p60,
-    exists (select 1 from btc_1m where btc_1m.ts = ws)
+    (select count(distinct src) from btc_1m where btc_1m.ts = ws) = 2
+      or (now() > ws + interval '4 minutes' and exists (select 1 from btc_1m where btc_1m.ts = ws))
   from now_ n;
 $$;
 
@@ -147,9 +163,14 @@ begin
   pu := 1 / (1 + exp(-(0.000969 + (-0.118527::float8 * ((coalesce(f.z_15, -0.0049461204) - -0.0049461204) / 1.0296777336)) + (-0.003209::float8 * ((coalesce(f.z_60, -0.0064387427) - -0.0064387427) / 0.9682233514)) + (0.025791::float8 * ((coalesce(f.z_240, 0.000550132) - 0.000550132) / 0.8827618812)) + (-0.018195::float8 * ((coalesce(f.rsi_14, 50.0584462026) - 50.0584462026) / 11.7610853791)) + (-0.015942::float8 * ((coalesce(f.rangepos_60, 0.5056119086) - 0.5056119086) / 0.3252956114)) + (0.015222::float8 * ((coalesce(f.gap_15, -0.1481144815) - -0.1481144815) / 1.0260382429)) + (0.071305::float8 * ((coalesce(f.prev_move_z, -0.0060588731) - -0.0060588731) / 1.0103300675)) + (0.006903::float8 * ((coalesce(f.rv_ratio, 0.9367302384) - 0.9367302384) / 0.4123624023)) + (0.012878::float8 * ((coalesce(f.ret_1, 1.9661e-06) - 1.9661e-06) / 0.0005316337)) + (-0.114207::float8 * ((coalesce(f.rangepos_240, 0.5099600718) - 0.5099600718) / 0.2992351485)))));
   side_p := greatest(pu, 1 - pu);
 
-  insert into btc15_signals(window_start, window_end, start_price, move_15m, move_60m, strength, call, p_up, rv60, model)
+  insert into btc15_signals(window_start, window_end, start_price, move_15m, move_60m, strength, call, p_up, rv60, model, z240, tier)
   values (ws, ws + interval '15 minutes', round(f.k::numeric, 2), round(f.move_15::numeric, 2), round(f.move_60::numeric, 2),
           case when side_p >= 0.55 then 'strong' else 'weak' end,
-          case when pu >= 0.5 then 'up' else 'down' end, pu, f.rv_60, 'logit10');
+          case when pu >= 0.5 then 'up' else 'down' end, pu, f.rv_60, 'logit10', f.z_240,
+          case when side_p >= 0.55 and abs(f.z_240) >= 0.868 and extract(hour from ws at time zone 'UTC') not between 6 and 17 then 'prime+'
+               when side_p >= 0.55 and abs(f.z_240) >= 0.868 then 'prime'
+               when side_p >= 0.55 then 'strong'
+               when side_p >= 0.53 then 'medium'
+               else 'weak' end);
 end $$;
 
