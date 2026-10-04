@@ -9,6 +9,10 @@ Robinhood contract price you saw for each window.
 2. Redeploy that folder to Vercel (stocks-crypto project).
 3. Open `stocks-crypto-eta.vercel.app/btc15.html` and bookmark it.
 
+## Install as an app
+- iPhone: open the site in Safari → Share → Add to Home Screen.
+- Android: open it in Chrome → ⋮ menu → Add to Home screen / Install app.
+
 ## Use
 - Each window: read the call, open Robinhood's BTC 15 min market for the same
   window, and enter the price for the called side in cents (e.g. `52`).
