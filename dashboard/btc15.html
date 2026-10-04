@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BTC 15m · Mohamed Stucks Signals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F8; --panel:#FFFFFF; --ink:#18202E; --muted:#667085; --line:#DDE2EA;
+  --up:#1D8556; --up-soft:#E3F3EA; --down:#B93A33; --down-soft:#F8E4E2; --strong:#B7791F;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121821; --panel:#1A2230; --ink:#E8ECF2; --muted:#98A2B3; --line:#2A3445;
+  --up:#3CC27F; --up-soft:#173327; --down:#F0726A; --down-soft:#3A1E1E; --strong:#E6A93A;}}
+:root[data-theme="dark"]{
+  --bg:#121821; --panel:#1A2230; --ink:#E8ECF2; --muted:#98A2B3; --line:#2A3445;
+  --up:#3CC27F; --up-soft:#173327; --down:#F0726A; --down-soft:#3A1E1E; --strong:#E6A93A;}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:Manrope,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;line-height:1.45}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px}
+header h1{font-size:1rem;font-weight:800;margin:0}
+header a{color:var(--muted);font-size:.875rem}
+.muted{color:var(--muted)}
+
+/* the live call */
+.call{border-radius:20px;padding:24px 20px;background:var(--panel);border:1px solid var(--line)}
+.call.up{background:var(--up-soft);border-color:transparent}
+.call.down{background:var(--down-soft);border-color:transparent}
+.call .dir{font-size:clamp(3.5rem,18vw,6rem);font-weight:800;line-height:.95;letter-spacing:-.03em;margin:4px 0 8px}
+.call.up .dir{color:var(--up)} .call.down .dir{color:var(--down)}
+.call .row{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:.95rem}
+.badge{display:inline-block;font-size:.8rem;font-weight:600;padding:2px 10px;border-radius:999px;border:1px solid currentColor}
+.badge.strong{color:var(--strong)} .badge.weak{color:var(--muted)}
+.clock{font-size:1.5rem;font-weight:800}
+.status{margin-top:12px;font-weight:600}
+
+h2{font-size:1rem;font-weight:800;margin:32px 0 10px}
+.score{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.score div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.score b{display:block;font-size:1.4rem}
+.score span{font-size:.85rem;color:var(--muted)}
+
+.list{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.item{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .t{font-weight:600;font-size:.9rem}
+.item .c{font-size:.9rem}
+.pill{font-weight:800}
+.pill.up{color:var(--up)} .pill.down{color:var(--down)}
+.res.win{color:var(--up);font-weight:600} .res.loss{color:var(--down);font-weight:600}
+.price{display:flex;gap:6px;align-items:center}
+.price input{width:64px;font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.price button{font:inherit;font-size:.85rem;font-weight:600;padding:6px 10px;border-radius:8px;border:0;background:var(--ink);color:var(--bg);cursor:pointer}
+.price button:disabled{opacity:.5}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--strong);outline-offset:2px}
+.note{font-size:.85rem;color:var(--muted);margin-top:10px}
+.err{color:var(--down);font-size:.9rem;margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>BTC 15-minute calls</h1>
+    <a href="/">Back to signals</a>
+  </header>
+
+  <section id="call" class="call" aria-live="polite">
+    <div class="muted">Loading the current window…</div>
+  </section>
+
+  <h2>Paper-trading scorecard</h2>
+  <div id="score" class="score"></div>
+  <p class="note">Hit rate needs to beat the price you pay. At a 52¢ entry you break even at 52% correct.</p>
+
+  <h2>Recent windows</h2>
+  <div id="list" class="list"></div>
+  <p class="note">Enter the Robinhood price you saw for the called side, in cents (e.g. 52). Profit fills in when the window settles.</p>
+  <div id="err" class="err" role="alert"></div>
+</main>
+
+<script>
+const URL_BASE = "https://pwwjbzeayctgmkwryyfc.supabase.co/rest/v1";
+const KEY = "sb_publishable_u7LSih0Fojs6eaAVIg6j0w_PGkQCZ4U";
+const BTC = "b9efe938-65b8-4c9c-8b3c-9047236d4c2a";
+const H = { apikey: KEY, "Content-Type": "application/json" };
+
+let rows = [], lastPrice = null, editing = new Set();
+
+const fmtT = d => new Date(d).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+const fmtUSD = n => "$" + Number(n).toLocaleString(undefined,{maximumFractionDigits:2});
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function get(path){
+  const r = await fetch(URL_BASE + path, { headers: H });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function load(){
+  try{
+    const [sig, sc, px] = await Promise.all([
+      get("/btc15_signals?select=*&order=window_start.desc&limit=40"),
+      get("/btc15_scorecard?select=*"),
+      get(`/price_checks?select=price,checked_at&asset_id=eq.${BTC}&order=checked_at.desc&limit=1`)
+    ]);
+    rows = sig; lastPrice = px[0] ? Number(px[0].price) : null;
+    renderScore(sc); renderList(); renderCall();
+    document.getElementById("err").textContent = "";
+  }catch(e){
+    document.getElementById("err").textContent = "Couldn't reach Supabase. Check your connection; the page retries every 30 seconds.";
+  }
+}
+
+function current(){
+  const now = Date.now();
+  return rows.find(r => new Date(r.window_start) <= now && now < new Date(r.window_end));
+}
+
+function renderCall(){
+  const el = document.getElementById("call"), r = current();
+  if (!r){
+    const next = new Date(Math.ceil(Date.now()/900000)*900000);
+    el.className = "call";
+    el.innerHTML = `<div class="muted">No call for this window yet.</div>
+      <div class="row" style="margin-top:8px">Next call posts about 2 min after ${fmtT(next)}.</div>`;
+    return;
+  }
+  const left = Math.max(0, new Date(r.window_end) - Date.now());
+  const mm = Math.floor(left/60000), ss = String(Math.floor(left/1000)%60).padStart(2,"0");
+  let status = "";
+  if (lastPrice){
+    const upNow = lastPrice >= Number(r.start_price);
+    const winning = (upNow ? "up" : "down") === r.call;
+    status = `<div class="status">${winning ? "Currently winning" : "Currently losing"} · BTC ${fmtUSD(lastPrice)}</div>`;
+  }
+  el.className = "call " + r.call;
+  el.innerHTML = `
+    <div class="row"><span>${fmtT(r.window_start)}–${fmtT(r.window_end)}</span>
+      <span class="badge ${r.strength}">${r.strength === "strong" ? "Strong signal" : "Weak signal"}</span></div>
+    <div class="dir">${r.call === "up" ? "Up" : "Down"}</div>
+    <div class="row"><span>Target ${fmtUSD(r.start_price)}</span>
+      <span>Last hour ${Number(r.move_60m) >= 0 ? "+" : ""}${fmtUSD(r.move_60m).replace("$-","-$")}</span></div>
+    <div class="row" style="margin-top:10px"><span class="clock">${mm}:${ss}</span><span class="muted" style="align-self:center">left in window</span></div>
+    ${status}`;
+}
+
+function renderScore(sc){
+  const by = Object.fromEntries(sc.map(s => [s.strength, s]));
+  const all = sc.reduce((a,s)=>({res:a.res+Number(s.resolved||0), pnl:a.pnl+Number(s.paper_pnl_per_1_contract||0), priced:a.priced+Number(s.priced_trades||0)}),{res:0,pnl:0,priced:0});
+  const hr = s => s && s.hit_rate_pct != null ? s.hit_rate_pct + "%" : "—";
+  document.getElementById("score").innerHTML = `
+    <div><b>${hr(by.strong)}</b><span>Strong hit rate · ${by.strong?.resolved||0} settled</span></div>
+    <div><b>${hr(by.weak)}</b><span>Weak hit rate · ${by.weak?.resolved||0} settled</span></div>
+    <div><b style="color:${all.pnl>=0?"var(--up)":"var(--down)"}">${all.pnl>=0?"+":"-"}$${Math.abs(all.pnl).toFixed(2)}</b><span>Paper profit, 1 contract each</span></div>
+    <div><b>${all.priced}</b><span>Trades with a price entered</span></div>`;
+}
+
+function renderList(){
+  const el = document.getElementById("list");
+  if (!rows.length){ el.innerHTML = `<div class="item"><span></span><span class="muted">First call posts at the next 15-minute mark.</span><span></span></div>`; return; }
+  el.innerHTML = rows.map(r => {
+    const id = esc(r.window_start);
+    let res = `<span class="muted">Open</span>`;
+    if (r.correct !== null) res = r.correct ? `<span class="res win">Won</span>` : `<span class="res loss">Lost</span>`;
+    const pnl = r.pnl_per_contract !== null ? ` ${Number(r.pnl_per_contract)>=0?"+":"-"}${Math.abs(Math.round(r.pnl_per_contract*100))}¢` : "";
+    const val = r.contract_price !== null ? Math.round(r.contract_price*100) : "";
+    return `<div class="item">
+      <span class="t">${fmtT(r.window_start)}</span>
+      <span class="c"><span class="pill ${r.call}">${r.call === "up" ? "Up" : "Down"}</span>
+        <span class="muted">${r.strength}</span> · ${res}${pnl}</span>
+      <form class="price" data-ws="${id}" onsubmit="return false">
+        <input inputmode="decimal" aria-label="Entry price in cents for ${fmtT(r.window_start)}" placeholder="¢" value="${val}">
+        <button type="button">Save</button>
+      </form></div>`;
+  }).join("");
+  el.querySelectorAll(".price").forEach(f => {
+    const inp = f.querySelector("input"), btn = f.querySelector("button");
+    inp.addEventListener("focus", () => editing.add(f.dataset.ws));
+    inp.addEventListener("blur", () => setTimeout(() => editing.delete(f.dataset.ws), 300));
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") btn.click(); });
+    btn.addEventListener("click", () => save(f.dataset.ws, inp.value, btn));
+  });
+}
+
+async function save(ws, raw, btn){
+  const err = document.getElementById("err");
+  let v = raw.trim() === "" ? null : Number(raw);
+  if (v !== null && v >= 1) v = v / 100;
+  if (v !== null && !(v > 0 && v < 1)){ err.textContent = "Enter a price between 1 and 99 cents."; return; }
+  btn.disabled = true; btn.textContent = "Saving";
+  try{
+    const r = await fetch(URL_BASE + "/rpc/btc15_set_price", { method:"POST", headers:H, body: JSON.stringify({ p_window_start: ws, p_price: v }) });
+    if (!r.ok) throw new Error(await r.text());
+    btn.textContent = "Saved"; err.textContent = "";
+    editing.delete(ws); setTimeout(load, 400);
+  }catch(e){
+    btn.disabled = false; btn.textContent = "Save";
+    err.textContent = "Price not saved. Try again.";
+  }
+}
+
+load();
+setInterval(() => { if (!editing.size) load(); }, 30000);
+setInterval(renderCall, 1000);
+</script>
+</body>
+</html>
