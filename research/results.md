@@ -135,3 +135,15 @@ value-area width.
 - Breakouts outside the value area didn't hurt Strong calls (57.5% below,
   57.1% above, 56.0% inside), so the profile can't flag "falling knife"
   windows either.
+
+## Fibonacci retracements (added 2026-10-05)
+`research8.py` compared price within 2% of a Fibonacci level (23.6, 38.2, 50,
+61.8, 78.6% of the 4 h / 24 h range) with price at similarly spaced
+non-Fibonacci control levels.
+
+- Reversal of the previous 15-minute move: 51.1% at Fib vs 50.4% at control
+  (4 h); 51.5% vs 51.3% (24 h). No support/resistance effect.
+- Strong calls: 59.2% at 4 h Fib levels (n=311) vs 54.4% at control (n=436).
+  The gap is about one standard error and a half, consistent with noise; at
+  24 h, 56.3% vs 55.3%.
+- Adding Fib features to the model: +0.3 bp at best. **Nothing added.**
