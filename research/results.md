@@ -65,3 +65,31 @@ Calibration: on the holdout the raw model is overconfident (log-odds slope
   `weak`. Only Prime is "Buy". The |z_240| cutoff came from the selection
   period. The time-of-day split was spotted with the holdout in view, so treat
   Prime ★ as promising, not proven, until live data confirms it.
+
+## Second training year and new signals (added 2026-10-05)
+Downloaded Oct 2024 – Sep 2025 (Coinbase + Bitstamp) and two years of
+Binance.US BTC/USDT taker-buy volume.
+
+- **Order flow (Binance.US): no help.** Following buy/sell pressure hit 49%;
+  adding it to the model slightly lowered holdout results (Prime 57.7% vs
+  58.1%). Binance.US trades only ~0.03 BTC/min, too thin to matter.
+- **Interaction terms** (big-move × signals, evening × signals): within ±1.5
+  points of the simple Prime filter. Not adopted.
+- **2-year training** (same 10 features), holdout Jun–Oct 2026:
+
+| | 1-year | 2-year |
+|---|---|---|
+| Log-loss gain | 9.4 bp | 11.2 bp |
+| Calibration slope (1 = perfect) | 0.65 | 0.79 |
+| Strong hit | 55.0% (2,864) | 56.5% (1,514) |
+| Prime hit | 58.0% (1,142) | 58.8% (706) |
+| Prime ★ hit | 62.8% (481) | 64.0% (308) |
+
+- **Fresh-year check** (model trained on Oct 2025 – Oct 2026, scored on
+  Oct 2024 – Sep 2025, 34,944 windows): Strong 55.2%, Prime ★ 56.5%,
+  Prime 54.6%, Strong without big move 55.1%, Medium 51.4%, Weak 50.6%.
+  **Strong ≈ 55% holds in all three periods.** The Prime/Prime ★ boost was
+  mostly a 2026 effect.
+- Deployed: the 2-year model (`fit_final.py`). All Strong-family calls are now
+  "Buy" with price caps from conservative rates (★ 58% → 55¢, Prime 56% →
+  53¢, Strong 55% → 52¢). The app's honesty shrink is now 0.8.

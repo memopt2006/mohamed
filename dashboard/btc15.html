@@ -117,12 +117,12 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(-
 
   <h2>Paper-trading scorecard</h2>
   <div id="score" class="score"></div>
-  <p class="note">Tested on Jun–Oct 2026 data the model never saw: Prime ★ calls were right 62.8% of the time, Prime 58.1%, other Strong 53.4%, Medium 52.2%, Weak 49.9%. Buy Prime calls, take Strong only when cheap, skip the rest.</p>
+  <p class="note">Model trained on two years of data. Strong calls (any kind) were right about 55% of the time in three separate test periods; Prime ★ did best in 2026 (64%) but only 56–57% in 2024–25. Medium (~51%) and Weak (~50%) had no edge. Buy Strong-family calls at the price shown; skip the rest.</p>
 
   <h2>Prediction tracker</h2>
   <div id="tstats" class="tstats"></div>
   <div id="trk" class="trk"></div>
-  <p class="note">Every call from the new model, with the advice it gave when the window opened and the result at the 15-minute close (Robinhood's rule: at or above the target counts as Up). Buy: Prime call (Strong call after a big 4-hour move; ★ = also 2 PM–2 AM New York time). Buy if cheap: other Strong calls. Skip: Medium and Weak. Last 24 hours shown; the totals above cover all calls.</p>
+  <p class="note">Every call from the new model, with the advice it gave when the window opened and the result at the 15-minute close (Robinhood's rule: at or above the target counts as Up). Buy ★: Prime ★ call (Strong call after a big 4-hour move, 2 PM–2 AM New York time). Buy: other Strong and Prime calls. Skip: Medium and Weak. Last 24 hours shown; the totals above cover all calls.</p>
 
   <h2>Log your trades</h2>
   <div id="list" class="list"></div>
@@ -135,18 +135,18 @@ const URL_BASE = "https://pwwjbzeayctgmkwryyfc.supabase.co/rest/v1";
 const KEY = "sb_publishable_u7LSih0Fojs6eaAVIg6j0w_PGkQCZ4U";
 const BTC = "b9efe938-65b8-4c9c-8b3c-9047236d4c2a";
 const H = { apikey: KEY, "Content-Type": "application/json" };
-// in-window fair value model (fitted on a year of 1-minute data; see research/research2.py)
-const IW = {a: 0.012284, z: 1.148538, pre: 0.709898, zt: 0.247366};
+// in-window fair value model (fitted on two years of 1-minute data; see research/fit_final.py)
+const IW = {a: 0.002504, z: 1.14664, pre: 0.913805, zt: 0.248198};
 const MARGIN = 0.03;   // buy only when the price is at least 3¢ under fair value
-const SHRINK = 0.75;   // holdout calibration: raw model log-odds are ~25-35% too confident
+const SHRINK = 0.8;    // holdout calibration of the 2-year model: log-odds ~20% too confident
 const honest = p => sig(SHRINK * Math.log(p / (1 - p)));
-// Tiers are set by the database when the call posts. Hit rates from the Jun-Oct 2026 holdout:
-//   prime+ = strong call + big 4-hour move + 18:00-05:59 UTC (62.8%), prime = strong + big 4-hour move (58.1%),
-//   strong = other strong calls (53.4%), medium (52.2%) and weak (49.9%) had no usable edge.
+// Tiers are set by the database when the call posts. Rates are conservative blends of three separate tests
+// (fresh Oct 2024-Sep 2025 year, Jan-May 2026, Jun-Oct 2026 holdout): Strong calls hit ~55% in all three;
+// Prime (big 4-hour move) and Prime ★ (also 2 PM-2 AM New York) did better in 2026 but only slightly in 2024-25.
 const TIERS = {
-  "prime+": {label:"Prime ★", cls:"primeplus", rate:0.62, act:"buy"},
-  "prime":  {label:"Prime",   cls:"prime",     rate:0.58, act:"buy"},
-  "strong": {label:"Strong",  cls:"strong",    rate:0.535, act:"cheap"},
+  "prime+": {label:"Prime ★", cls:"primeplus", rate:0.58, act:"buy"},
+  "prime":  {label:"Prime",   cls:"prime",     rate:0.56, act:"buy"},
+  "strong": {label:"Strong",  cls:"strong",    rate:0.55, act:"buy"},
   "medium": {label:"Medium",  cls:"medium",    act:"skip"},
   "weak":   {label:"Weak",    cls:"weak",      act:"skip"},
 };
@@ -265,9 +265,7 @@ function renderCall(){
     const maxPay = Math.floor((fairSide - MARGIN) * 100 + 1e-6);
     ruleHtml = !trade
       ? `<div class="rule"><b>No trade.</b> ${label} calls had no real edge in testing. Wait for the next window.</div>`
-      : ti.act === "buy"
-      ? `<div class="rule"><b>Buy ${sideWord}</b> at <b>${maxPay}¢ or less</b> right now. Above that, skip this window.</div>`
-      : `<div class="rule">Only if cheap: buy <b>${sideWord}</b> at <b>${maxPay}¢ or less</b>. Prime calls are the better bets.</div>`;
+      : `<div class="rule"><b>Buy ${sideWord}</b> at <b>${maxPay}¢ or less</b> right now. Above that, skip this window.</div>`;
   }
 
   el.className = "call " + (trade ? r.call : "notrade");
@@ -326,7 +324,7 @@ function renderTracker(tk, hist){
     return `<div><b>${n ? Math.round(100 * w / n) + "%" : "—"}</b><span>${name} · ${w}/${n} right</span></div>`;
   };
   document.getElementById("tstats").innerHTML =
-    tile(["prime+","prime"],"Buy (Prime)") + tile(["strong"],"Buy if cheap") + tile(["medium","weak"],"Skip");
+    tile(["prime+"],"Buy ★") + tile(["prime","strong"],"Buy") + tile(["medium","weak"],"Skip");
   const el = document.getElementById("trk");
   if (!hist.length){ el.innerHTML = `<div class="trow"><span></span><span class="muted">The first call posts at the next 15-minute mark.</span><span></span><span></span></div>`; return; }
   el.innerHTML = `<div class="trow head"><span>Window</span><span>Prediction</span><span>Advice</span><span style="text-align:right">Result</span></div>` +
