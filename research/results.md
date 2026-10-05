@@ -104,3 +104,20 @@ Bollinger %B (20, 60), CCI (20, 60), VWAP distance (60, 240), Stochastic
   the same snap-back signal the model already has.
 - Best addition (MACD histogram) improved selection log loss by 0.3 bp, below
   the 2 bp bar. **Nothing added.** The 10 live features already capture it.
+
+## Live losing streak review (added 2026-10-05)
+- Since the 2-year model went live, high-confidence calls went 0/9. All
+  Strong-family calls since launch: 11/27 (41%).
+- Not a bug: the live probabilities match an offline recomputation to 4
+  decimals.
+- The losses came in two one-way trends (a ~$1,100 fall overnight and a slow
+  afternoon climb). The model kept betting on a snap-back at fresh 4-hour
+  lows and highs.
+- `research6.py`: trend guards don't help. After a losing call, the next
+  same-direction Strong call wins *more* (57–59%), and calls during smooth
+  one-way hours still win 55–58%. Strong calls at a fresh 4-hour extreme won
+  56.0% / 56.2% / 57.9% in the three periods.
+- Historical runs of consecutive Strong losses: 13 (2024–25), 7 (Jan–May
+  2026), 9 (Jun–Oct 2026). Losing streaks this long are part of a 55% edge.
+- Plan: keep paper trading to ~150 live Strong calls. If live is still below
+  ~52% then, the model isn't working live and should be stopped.
