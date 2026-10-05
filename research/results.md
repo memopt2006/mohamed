@@ -121,3 +121,17 @@ Bollinger %B (20, 60), CCI (20, 60), VWAP distance (60, 240), Stochastic
   2026), 9 (Jun–Oct 2026). Losing streaks this long are part of a 55% edge.
 - Plan: keep paper trading to ~150 live Strong calls. If live is still below
   ~52% then, the model isn't working live and should be stopped.
+
+## Volume profile (added 2026-10-05)
+`research7.py` built 4-hour and 24-hour volume profiles (Coinbase + Bitstamp
+volume by price) and tested distance to the POC, above/below the value area,
+distance outside it, volume at the current price (high/low-volume node) and
+value-area width.
+
+- Same snap-back signal again. Below the 4 h value area, 54.6% of windows
+  settled Up; above it, 46.8%. Node volume and value-area width had no signal.
+- Best addition (`va_out_240`) improved selection log loss by 1.0 bp, below
+  the 2 bp bar. **Nothing added.**
+- Breakouts outside the value area didn't hurt Strong calls (57.5% below,
+  57.1% above, 56.0% inside), so the profile can't flag "falling knife"
+  windows either.
