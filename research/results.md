@@ -93,3 +93,14 @@ Binance.US BTC/USDT taker-buy volume.
 - Deployed: the 2-year model (`fit_final.py`). All Strong-family calls are now
   "Buy" with price caps from conservative rates (★ 58% → 55¢, Prime 56% →
   53¢, Strong 55% → 52¢). The app's honesty shrink is now 0.8.
+
+## Classic indicators (added 2026-10-05)
+`research5.py` tested MACD (12/26/9 and 60/130/45, line and histogram),
+Bollinger %B (20, 60), CCI (20, 60), VWAP distance (60, 240), Stochastic
+%K/%D (14, 60), EMA slopes (20, 60) and trend efficiency (60, 240), with
+2-year training and selection on data before 2026-06.
+
+- Following any of them alone hit 47.7–48.7%, so fading them hits 51–52%:
+  the same snap-back signal the model already has.
+- Best addition (MACD histogram) improved selection log loss by 0.3 bp, below
+  the 2 bp bar. **Nothing added.** The 10 live features already capture it.
