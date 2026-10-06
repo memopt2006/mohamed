@@ -147,3 +147,36 @@ non-Fibonacci control levels.
   The gap is about one standard error and a half, consistent with noise; at
   24 h, 56.3% vs 55.3%.
 - Adding Fib features to the model: +0.3 bp at best. **Nothing added.**
+
+## Real market prices and free external data (added 2026-10-06)
+
+### Polymarket BTC 15-minute up/down markets (`research9.py`)
+12,095 windows, Jun 1 – Oct 4 2026; median $28k traded per window; Up price
+history about once a minute.
+
+- **The market is well calibrated.** At minute 3, a price bucket of 0.60–0.70
+  resolved Up 66%; 0.30–0.40 resolved Up 33%.
+- **Our model adds nothing once the market has a few minutes.** In a logistic
+  regression of the outcome on market log-odds plus our extra view, the weight
+  on our view is +0.03 (minute 3), −0.10 (5) and −0.09 (8).
+- A first run showed +8 to +13¢ per trade. That was a look-ahead artifact: BTC
+  prices newer than the market quote. With BTC prices taken only from before
+  each quote, trading the gap earns −2.4¢ to +0.3¢ per trade after 1–3¢ costs.
+- Strong calls bought at the market price: right 55.6%, average price 53.7¢,
+  **+1.8 to +2.1¢ per trade before costs** (n≈1,510, standard error ≈1.3¢).
+  Before the window opens, the model gets weight +0.31 beyond the market price;
+  by the second minute, +0.05. After spread and fees (~1–2¢) the profit is
+  close to zero.
+
+### OKX perpetual futures, ETH lead-lag, news times (`research10.py`)
+- Perp premium over spot, its changes, perp volume surges and perp/spot volume
+  ratio: no signal (50–51% Up in every quintile). Best addition +0.4 bp.
+- ETH returns carry the same snap-back as BTC. ETH's move beyond BTC's
+  (lead-lag) has no signal. Not added.
+- Weekday windows at 8:30 AM / 2:00 PM New York: larger moves (median $121 vs
+  $85) but Strong calls hit the same (55.9% vs 55.8%). No filter needed.
+
+### What it means
+The ~55% snap-back edge is real but the crowd prices most of it. The useful
+remaining tool is comparing Robinhood's price with Polymarket's for the same
+window.

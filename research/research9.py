@@ -50,18 +50,25 @@ def main(px_path, pred_path, model_path, pm_files):
         if ts not in win.index or ts not in pre.index or not outcome or np.isnan(pre[ts]):
             continue
         for t_min in (3, 5, 8):
-            mp = price_at(pts, t_min * 60)
-            if mp is None or not (0.02 < mp < 0.98):
+            # first market quote at or after t_min; decide at that quote's time using only BTC prices from
+            # minutes that started before it (no look-ahead against the market)
+            q = [(t, p) for t, p in pts if t >= t_min * 60 - 10 and t < t_min * 60 + 60]
+            if not q:
                 continue
-            P = df['open'].get(ts + pd.Timedelta(minutes=t_min)); K = df['open'].get(ts); rv = win.at[ts, 'rv_60']
-            if P is None or K is None or not rv:
+            tq, mp = q[0]
+            if not (0.02 < mp < 0.98):
                 continue
-            rem = (W - 1 - t_min) + 1 / 3
+            minute = int(tq // 60)                                # BTC price at the start of the quote's minute
+            P = df['open'].get(ts + pd.Timedelta(minutes=minute)); K = df['open'].get(ts); rv = win.at[ts, 'rv_60']
+            if P is None or K is None or not rv or np.isnan(P):
+                continue
+            t_eff = minute
+            rem = (W - 1 - t_eff) + 1 / 3
             z = np.log(P / K) / (rv * np.sqrt(rem))
             lpre = np.log(pre[ts] / (1 - pre[ts]))
-            fair = 1 / (1 + np.exp(-(a + bz * z + bpre * lpre + bzt * z * np.sqrt(t_min))))
+            fair = 1 / (1 + np.exp(-(a + bz * z + bpre * lpre + bzt * z * np.sqrt(t_eff))))
             fair_rw = norm.cdf(z / 0.95)                              # same, without our model's view
-            out.append(dict(ts=ts, t=t_min, mkt=mp, fair=fair, fair_rw=fair_rw, p_pre=pre[ts],
+            out.append(dict(ts=ts, t=t_min, tq=tq, mkt=mp, fair=fair, fair_rw=fair_rw, p_pre=pre[ts],
                             up=1 if outcome == 'up' else 0, vol=vol))
     d = pd.DataFrame(out)
     print('rows', len(d), 'windows', d.ts.nunique())
