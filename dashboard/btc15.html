@@ -169,6 +169,8 @@ function preLogit(r){
 }
 
 let rows = [], lastPrice = null, livePrice = null, liveAt = 0, editing = new Set(), checkVal = "";
+// Polymarket's price for the same 15-minute window (well calibrated in testing; used as a reference price)
+let pm = {ws: null, token: null, up: null, at: 0};
 
 const fmtT = d => new Date(d).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
 const fmtUSD = n => (n < 0 ? "-$" : "$") + Math.abs(Number(n)).toLocaleString(undefined,{maximumFractionDigits:0});
@@ -207,6 +209,36 @@ async function tick(){
     const r = await fetch("https://api.exchange.coinbase.com/products/BTC-USD/ticker", {cache:"no-store"});
     if (r.ok){ const j = await r.json(); livePrice = Number(j.price); liveAt = Date.now(); renderCall(); }
   }catch(e){}
+}
+
+async function pmTick(){
+  const r = current();
+  if (!r || document.hidden) return;
+  try{
+    if (pm.ws !== r.window_start){
+      pm = {ws: r.window_start, token: null, up: null, at: 0};
+      const slug = "btc-updown-15m-" + Math.floor(new Date(r.window_start).getTime() / 1000);
+      const ev = await (await fetch("https://gamma-api.polymarket.com/events?slug=" + slug, {cache:"no-store"})).json();
+      const m = ev && ev[0] && ev[0].markets && ev[0].markets[0];
+      if (!m) return;
+      const toks = JSON.parse(m.clobTokenIds), outs = JSON.parse(m.outcomes);
+      pm.token = outs[0] === "Up" ? toks[0] : toks[1];
+    }
+    if (!pm.token) return;
+    const j = await (await fetch("https://clob.polymarket.com/midpoint?token_id=" + pm.token, {cache:"no-store"})).json();
+    const mid = Number(j.mid);
+    if (mid > 0 && mid < 1){ pm.up = mid; pm.at = Date.now(); renderCall(); }
+  }catch(e){}
+}
+const pmUpNow = r => (pm.ws === r.window_start && pm.up != null && Date.now() - pm.at < 30000) ? pm.up : null;
+
+// the price to compare Robinhood against: the lower of Polymarket's price and our fair value for the called side
+function refSide(r, fu){
+  const ours = fu == null ? null : (r.call === "up" ? fu : 1 - fu);
+  const pu = pmUpNow(r), poly = pu == null ? null : (r.call === "up" ? pu : 1 - pu);
+  if (ours == null) return poly;
+  if (poly == null) return ours;
+  return Math.min(ours, poly);
 }
 
 function current(){
@@ -258,11 +290,11 @@ function renderCall(){
     fairHtml = `<div class="fair">
       <div><b>${cents(fu)}</b><span>Fair price for Yes (up) now</span></div>
       <div><b>${cents(1 - fu)}</b><span>Fair price for No (down) now</span></div></div>
+      ${pmUpNow(r) != null ? `<div class="note" style="margin-top:8px">Polymarket, same window: <b>Yes ${cents(pmUpNow(r))} · No ${cents(1 - pmUpNow(r))}</b> (a well-calibrated crowd price)</div>` : ""}
       <div class="check"><label for="chk">Robinhood ${sideWord} price:</label>
         <input id="chk" inputmode="decimal" placeholder="¢" value="${esc(checkVal)}">
         <span id="verdict" class="verdict"></span></div>`;
-    const fairSide = r.call === "up" ? fu : 1 - fu;
-    const maxPay = Math.floor((fairSide - MARGIN) * 100 + 1e-6);
+    const maxPay = Math.floor((refSide(r, fu) - MARGIN) * 100 + 1e-6);
     ruleHtml = !trade
       ? `<div class="rule"><b>No trade.</b> ${label} calls had no real edge in testing. Wait for the next window.</div>`
       : `<div class="rule"><b>Buy ${sideWord}</b> at <b>${maxPay}¢ or less</b> right now. Above that, skip this window.</div>`;
@@ -290,9 +322,10 @@ function updateVerdict(r){
   const fu = fairUp(r, price);
   let c = Number(checkVal); if (c >= 1) c = c / 100;
   if (!checkVal || !(c > 0 && c < 1) || fu == null){ v.textContent = ""; v.className = "verdict"; return; }
-  const fairSide = r.call === "up" ? fu : 1 - fu;
-  const edge = fairSide - c;
-  if (edge >= MARGIN){ v.textContent = `Good price: +${Math.round(edge*100)}¢ edge`; v.className = "verdict good"; }
+  const ref = refSide(r, fu);
+  const edge = ref - c;
+  const vs = pmUpNow(r) != null ? " vs Polymarket & model" : "";
+  if (edge >= MARGIN){ v.textContent = `Good price: ${Math.round(edge*100)}¢ cheaper${vs}`; v.className = "verdict good"; }
   else if (edge > 0){ v.textContent = `Thin: +${Math.round(edge*100)}¢, skip`; v.className = "verdict"; }
   else { v.textContent = `Too expensive by ${Math.round(-edge*100)}¢`; v.className = "verdict bad"; }
 }
@@ -389,6 +422,7 @@ async function save(ws, raw, btn){
 load(); tick();
 setInterval(() => { if (!editing.size) load(); }, 30000);
 setInterval(tick, 5000);
+setInterval(pmTick, 5000); pmTick();
 setInterval(renderCall, 1000);
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 document.addEventListener("visibilitychange", () => { if (!document.hidden){ tick(); if (!editing.size) load(); } });
