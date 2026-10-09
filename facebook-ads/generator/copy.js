@@ -65,6 +65,6 @@ module.exports = [
       { t: 'Study or Exam mode', d: 'Rationales as you go, or timed with no hints.', box: { x0: .037, x1: .963, y0: .206, y1: .455 } },
       { t: 'Build your own quiz', d: 'Pick how many questions from each system, up to 225.', box: { x0: .037, x1: .963, y0: .469, y1: .842 } },
     ],
-    h: ['Pass NPTE with Confidence'],
+    h: ['Your Quiz. Your Way.<br>Your Pass.'],
   },
 ];
