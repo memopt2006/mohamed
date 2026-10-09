@@ -51,4 +51,20 @@ module.exports = [
       'Study what actually shows up.', 'Backed by the books *your professors trust.*', 'The right topics, in the right amounts', 'Blueprint-matched.'],
     stat: ['62', 'Musculoskeletal questions per full exam'],
   },
+  {
+    file: 'IMG_5721.jpg', slug: '06_app-overview', eyebrow: 'Your all-in-one NPTE prep',
+    items: [
+      { t: 'A daily goal, made for you', d: 'Smart Retests target the system that needs you most today.', box: { x0: .037, x1: .963, y0: .142, y1: .325 } },
+      { t: 'Quiz any system', d: 'Musculoskeletal, Neuro, Cardio, Peds & more, from 2,600 questions.', box: { x0: .037, x1: .963, y0: .409, y1: .812 } },
+    ],
+    h: ['Pass NPTE with Confidence'],
+  },
+  {
+    file: 'IMG_5722.jpg', slug: '07_build-your-quiz', eyebrow: 'Your all-in-one NPTE prep',
+    items: [
+      { t: 'Study or Exam mode', d: 'Rationales as you go, or timed with no hints.', box: { x0: .037, x1: .963, y0: .206, y1: .455 } },
+      { t: 'Build your own quiz', d: 'Pick how many questions from each system, up to 225.', box: { x0: .037, x1: .963, y0: .469, y1: .842 } },
+    ],
+    h: ['Pass NPTE with Confidence'],
+  },
 ];

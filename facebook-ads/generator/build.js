@@ -62,7 +62,7 @@ function zoom(img, b, bw, extra = '') {
     background-position:${-b.x0 * IMG_W * sc}px ${-b.y0 * IMG_H * sc}px;${extra}"></div>`;
 }
 
-const logo = (dark) => `<div class="logo ${dark ? 'dark' : ''}"><span class="mark">EDX</span><span>NPTE Prep</span></div>`;
+const logo = (dark) => `<div class="logo ${dark ? 'dark' : ''}"><span class="mark">EDX</span><span>EduCross NPTE</span></div>`;
 const cta = (txt, kind = 'gold') => `<div class="cta ${kind}">${txt} <span class="arr">→</span></div>`;
 
 const BASE_CSS = `
@@ -246,7 +246,7 @@ const designs = [
     const img = 'file://' + path.join(SRC, s.file);
     for (let i = 0; i < designs.length; i++) {
       const name = `${s.slug}_design${i + 1}`;
-      if (only && !name.includes(only)) continue;
+      if (only && !new RegExp(only).test(name)) continue;
       const html = `<!doctype html><html><head><meta charset="utf-8"><style>${BASE_CSS}</style></head>${designs[i](s, img)}</html>`;
       const hp = path.join(HTML, name + '.html');
       fs.writeFileSync(hp, html);
