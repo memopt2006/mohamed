@@ -180,3 +180,24 @@ history about once a minute.
 The ~55% snap-back edge is real but the crowd prices most of it. The useful
 remaining tool is comparing Robinhood's price with Polymarket's for the same
 window.
+
+## Live check and the "80–100% accuracy" question (added 2026-10-09)
+Live since launch (484 settled windows): all calls 254/484 (52.5%). Strong
+family (Prime ★ + Prime + Strong): 28/60 (46.7%). Since the 2-year model:
+17/42. Medium 52%, Weak 53.8%. The overall rate matches the backtest
+(~52–53%); the confident subset is below it so far.
+
+Accuracy can be bought, but it's priced in. Polymarket, Jun–Oct 2026,
+betting the market favourite at each minute (before fees):
+
+| Minute | Favourite right | Avg price | Profit/contract | Favourite ≥80¢: right / price / profit |
+|---|---|---|---|---|
+| 1 | 60.4% | 59.8¢ | +0.6¢ | 84.6% / 83.4¢ / +1.2¢ |
+| 5 | 70.9% | 70.3¢ | +0.6¢ | 88.9% / 87.1¢ / +1.8¢ |
+| 8 | 78.2% | 77.1¢ | +1.1¢ | 91.8% / 90.1¢ / +1.7¢ |
+| 10 | 82.6% | 81.8¢ | +0.8¢ | 93.2% / 92.3¢ / +0.9¢ |
+| 13 | 90.2% | 89.9¢ | +0.3¢ | 96.2% / 96.1¢ / +0.1¢ |
+| 14 | 94.4% | 93.8¢ | +0.7¢ | 98.2% / 97.6¢ / +0.7¢ |
+
+80–98% hit rates exist late in the window, but the price rises with them, so
+profit stays around 0–2¢ before fees.
