@@ -104,28 +104,37 @@ function svgLines(lines, color) {
 }
 const mid = b => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2];
 
-// ---------- 7 designs ----------
-const designs = [
-  // 1. Navy hero with connector callouts
-  (s, img) => {
+const HERO_THEMES = {
+  navy: { bg: `radial-gradient(circle at 85% 8%,#2c3f9e 0,transparent 40%),radial-gradient(circle at 10% 90%,#3a2f6a 0,transparent 45%),${NAVY}`,
+    ring: 'rgba(231,201,146,.18)', dark: false, eyebrow: GOLD_L, h1: '#fff', frame: 'blue', line: GOLD_L, cta: 'gold' },
+  cream: { bg: `radial-gradient(circle at 85% 8%,#f6dfb3 0,transparent 42%),radial-gradient(circle at 10% 90%,#f1d8a8 0,transparent 45%),linear-gradient(160deg,${CREAM} 0%,#f3e3c4 100%)`,
+    ring: 'rgba(179,139,77,.3)', dark: true, eyebrow: GOLD, h1: NAVY, frame: 'silver', line: GOLD, cta: 'navy' },
+};
+const hero = (theme) => (s, img) => {
+  const t = HERO_THEMES[theme];
     const pw = 390, pl = (W - pw) / 2, ptop = 360;
     const [a, b] = s.items;
     const ya = pt(pl, ptop, pw, 0, mid(a.box)[1])[1], yb = pt(pl, ptop, pw, 0, mid(b.box)[1])[1];
     const ca = Math.min(Math.max(ya - 90, 380), 1060), cb = Math.min(Math.max(yb - 90, 380), 1060);
-    return `<body style="background:radial-gradient(circle at 85% 8%,#2c3f9e 0,transparent 40%),radial-gradient(circle at 10% 90%,#3a2f6a 0,transparent 45%),${NAVY}">
-      <div class="abs" style="left:-200px;top:-260px;width:620px;height:620px;border-radius:50%;border:2px solid rgba(231,201,146,.18)"></div>
-      <div class="abs" style="left:64px;top:56px">${logo()}</div>
+    return `<body style="background:${t.bg}">
+      <div class="abs" style="left:-200px;top:-260px;width:620px;height:620px;border-radius:50%;border:2px solid ${t.ring}"></div>
+      <div class="abs" style="left:64px;top:56px">${logo(t.dark)}</div>
       <div class="abs" style="left:64px;right:64px;top:140px;text-align:center">
-        <div class="eyebrow" style="color:${GOLD_L}">${s.eyebrow}</div>
-        <h1 style="color:#fff;font-size:76px;margin-top:16px">${s.h[0]}</h1>
+        <div class="eyebrow" style="color:${t.eyebrow}">${s.eyebrow}</div>
+        <h1 style="color:${t.h1};font-size:76px;margin-top:16px">${s.h[0]}</h1>
       </div>
-      ${phone(img, pw, 'blue', { highlights: [a.box, b.box], style: `left:${pl}px;top:${ptop}px` })}
-      ${svgLines([[290, ca + 70, pt(pl, ptop, pw, a.box.x0 + 0.04, 0)[0], ya], [W - 290, cb + 70, pt(pl, ptop, pw, b.box.x1 - 0.04, 0)[0], yb]], GOLD_L)}
+      ${phone(img, pw, t.frame, { highlights: [a.box, b.box], style: `left:${pl}px;top:${ptop}px` })}
+      ${svgLines([[290, ca + 70, pt(pl, ptop, pw, a.box.x0 + 0.04, 0)[0], ya], [W - 290, cb + 70, pt(pl, ptop, pw, b.box.x1 - 0.04, 0)[0], yb]], t.line)}
       <div class="card" style="left:36px;top:${ca}px;width:270px;z-index:7"><div class="t">${a.t}</div><div class="d">${a.d}</div></div>
       <div class="card" style="right:36px;top:${cb}px;width:270px;z-index:7"><div class="t">${b.t}</div><div class="d">${b.d}</div></div>
-      <div class="abs" style="left:0;right:0;bottom:44px;text-align:center;z-index:8">${cta('Download now')}</div>
+      <div class="abs" style="left:0;right:0;bottom:44px;text-align:center;z-index:8">${cta('Download now', t.cta)}</div>
     </body>`;
-  },
+  };
+
+// ---------- 7 designs ----------
+const designs = [
+  // 1. Navy hero with connector callouts (cream theme: see hero('cream') below)
+  (s, img) => hero('navy')(s, img),
   // 2. Cream split, tilted phone right, numbered list left
   (s, img) => `<body style="background:linear-gradient(160deg,${CREAM} 0%,#f3e3c4 100%)">
       <div class="abs" style="right:-260px;top:120px;width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,#f0d9ae 0,#f6e7cb 60%,transparent 61%)"></div>
@@ -244,10 +253,11 @@ const designs = [
   const only = process.argv[2];
   for (const s of shots) {
     const img = 'file://' + path.join(SRC, s.file);
-    for (let i = 0; i < designs.length; i++) {
-      const name = `${s.slug}_design${i + 1}`;
+    const all = designs.map((fn, i) => [`design${i + 1}`, fn]).concat([['design1-cream', hero('cream')]]);
+    for (const [suffix, fn] of all) {
+      const name = `${s.slug}_${suffix}`;
       if (only && !new RegExp(only).test(name)) continue;
-      const html = `<!doctype html><html><head><meta charset="utf-8"><style>${BASE_CSS}</style></head>${designs[i](s, img)}</html>`;
+      const html = `<!doctype html><html><head><meta charset="utf-8"><style>${BASE_CSS}</style></head>${fn(s, img)}</html>`;
       const hp = path.join(HTML, name + '.html');
       fs.writeFileSync(hp, html);
       await page.goto('file://' + hp, { waitUntil: 'networkidle' });
