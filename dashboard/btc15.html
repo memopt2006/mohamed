@@ -121,6 +121,7 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(-
 
   <h2>Prediction tracker</h2>
   <div id="tstats" class="tstats"></div>
+  <div id="pmscore" class="rule" style="margin:0 0 10px"></div>
   <div id="trk" class="trk"></div>
   <p class="note">Every call from the new model, with the advice it gave when the window opened and the result at the 15-minute close (Robinhood's rule: at or above the target counts as Up). Buy: Strong call (model at least 55% sure). Skip: Medium and Weak. Last 24 hours shown; the totals above cover all calls.</p>
 
@@ -189,13 +190,15 @@ async function get(path){
 
 async function load(){
   try{
-    const [sig_, sc, px, tk, hist] = await Promise.all([
+    const [sig_, sc, px, tk, hist, pms] = await Promise.all([
       get("/btc15_signals?select=*&order=window_start.desc&limit=40"),
       get("/btc15_scorecard?select=*"),
       get(`/price_checks?select=price,checked_at&asset_id=eq.${BTC}&order=checked_at.desc&limit=1`),
       get("/btc15_tracker?select=*"),
-      get("/btc15_signals?select=window_start,call,p_up,start_price,end_price,correct,model,tier&model=eq.logit10&order=window_start.desc&limit=96")
+      get("/btc15_signals?select=window_start,call,p_up,start_price,end_price,correct,model,tier&model=eq.logit10&order=window_start.desc&limit=96"),
+      get("/btc15_pm_score?select=*").catch(() => [])
     ]);
+    renderPmScore(pms);
     rows = sig_; lastPrice = px[0] ? Number(px[0].price) : null;
     renderScore(sc); renderTracker(tk, hist); renderList(); renderCall();
     document.getElementById("err").textContent = "";
@@ -350,6 +353,17 @@ function advice(r){
   const maxPay = Math.floor((t.rate - MARGIN) * 100 + 1e-6);   // fair value at the start, when price = target
   if (t.act === "buy") return {cls:"buy", txt:"Buy", sub:`up to ${maxPay}¢`};
   return {cls:"maybe", txt:"Buy if cheap", sub:`up to ${maxPay}¢`};
+}
+
+// paper profit if each call had been bought at Polymarket's price a few minutes into the window
+function renderPmScore(rows){
+  const el = document.getElementById("pmscore");
+  const b = rows.find(x => x.advice === "buy"), k = rows.find(x => x.advice === "skip");
+  if (!b || !Number(b.calls)){ el.innerHTML = `<b>Profit at real market prices:</b> <span class="muted">collecting. Each call's Polymarket price is now recorded automatically.</span>`; return; }
+  const money = v => (Number(v) >= 0 ? "+$" : "-$") + Math.abs(Number(v)).toFixed(2);
+  el.innerHTML = `<b>Profit at real market prices</b> (1 contract per call, bought at Polymarket's price):<br>
+    Buy calls: <b style="color:${Number(b.profit) >= 0 ? "var(--up)" : "var(--down)"}">${money(b.profit)}</b> over ${b.calls} calls · avg price ${Math.round(b.avg_price*100)}¢ · ${Math.round(100*b.wins/b.calls)}% right
+    ${k && Number(k.calls) ? `<br><span class="muted">Skipped calls, for comparison: ${money(k.profit)} over ${k.calls}</span>` : ""}`;
 }
 
 function renderTracker(tk, hist){

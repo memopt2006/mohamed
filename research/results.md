@@ -221,3 +221,10 @@ profit stays around 0–2¢ before fees.
   ordinary Strong calls (55% rate, buy at 52¢ or less). The database still
   stores the tier so it can be tracked.
 - Still no Robinhood prices logged, so profit can't be measured yet.
+
+## Automatic market-price tracking (added 2026-10-11)
+`research.pm_live_tick()` (cron every 20 s) records Polymarket's Up midpoint
+for each live call 2–6 minutes into its window (`btc15_signals.pm_up`).
+`public.btc15_pm_score` shows paper profit if every call had been bought at
+that price. The app shows this in the Prediction tracker. This measures
+profit live without any manual price entry.
