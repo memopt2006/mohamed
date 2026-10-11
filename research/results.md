@@ -201,3 +201,23 @@ betting the market favourite at each minute (before fees):
 
 80–98% hit rates exist late in the window, but the price rises with them, so
 profit stays around 0–2¢ before fees.
+
+## Live check (added 2026-10-11)
+678 settled windows since launch.
+
+| Tier | All time | Last 2 days |
+|---|---|---|
+| All calls | 366/678 (54.0%) | 111/192 (57.8%) |
+| Strong (no big 4 h move) | 25/41 (61%) | 11/14 |
+| Prime (big 4 h move) | 8/16 (50%) | 2/4 |
+| Prime ★ (big move, 2 PM–2 AM NY) | 9/24 (37.5%) | 1/3 |
+| Medium | 98/177 (55.4%) | 33/51 |
+| Weak | 226/420 (53.8%) | 64/120 |
+
+- Overall 54.0% on 678 windows is about two standard errors above 50%, in
+  line with the backtest.
+- Prime/Prime ★ (17/40) did worse than plain Strong (25/41), and the fresh
+  2024–25 year showed no Prime advantage either. The app now treats them as
+  ordinary Strong calls (55% rate, buy at 52¢ or less). The database still
+  stores the tier so it can be tracked.
+- Still no Robinhood prices logged, so profit can't be measured yet.

@@ -117,12 +117,12 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(-
 
   <h2>Paper-trading scorecard</h2>
   <div id="score" class="score"></div>
-  <p class="note">Model trained on two years of data. Strong calls (any kind) were right about 55% of the time in three separate test periods; Prime ★ did best in 2026 (64%) but only 56–57% in 2024–25. Medium (~51%) and Weak (~50%) had no edge. Buy Strong-family calls at the price shown; skip the rest.</p>
+  <p class="note">Model trained on two years of data. Strong calls were right about 55% of the time in three separate test periods; Medium (~51%) and Weak (~50%) had no edge. Buy Strong calls at the price shown, and only when Robinhood is cheaper than Polymarket's price for the same side; skip the rest.</p>
 
   <h2>Prediction tracker</h2>
   <div id="tstats" class="tstats"></div>
   <div id="trk" class="trk"></div>
-  <p class="note">Every call from the new model, with the advice it gave when the window opened and the result at the 15-minute close (Robinhood's rule: at or above the target counts as Up). Buy ★: Prime ★ call (Strong call after a big 4-hour move, 2 PM–2 AM New York time). Buy: other Strong and Prime calls. Skip: Medium and Weak. Last 24 hours shown; the totals above cover all calls.</p>
+  <p class="note">Every call from the new model, with the advice it gave when the window opened and the result at the 15-minute close (Robinhood's rule: at or above the target counts as Up). Buy: Strong call (model at least 55% sure). Skip: Medium and Weak. Last 24 hours shown; the totals above cover all calls.</p>
 
   <h2>Log your trades</h2>
   <div id="list" class="list"></div>
@@ -144,8 +144,10 @@ const honest = p => sig(SHRINK * Math.log(p / (1 - p)));
 // (fresh Oct 2024-Sep 2025 year, Jan-May 2026, Jun-Oct 2026 holdout): Strong calls hit ~55% in all three;
 // Prime (big 4-hour move) and Prime ★ (also 2 PM-2 AM New York) did better in 2026 but only slightly in 2024-25.
 const TIERS = {
-  "prime+": {label:"Prime ★", cls:"primeplus", rate:0.58, act:"buy"},
-  "prime":  {label:"Prime",   cls:"prime",     rate:0.56, act:"buy"},
+  // Prime / Prime ★ (Strong call after a big 4-hour move) no longer get a boost: no better than other Strong
+  // calls in the fresh 2024-25 year (54.6-56.5% vs 55.1%) and worse live (17/40 vs 25/41 by 2026-10-11).
+  "prime+": {label:"Strong", cls:"strong", rate:0.55, act:"buy"},
+  "prime":  {label:"Strong", cls:"strong", rate:0.55, act:"buy"},
   "strong": {label:"Strong",  cls:"strong",    rate:0.55, act:"buy"},
   "medium": {label:"Medium",  cls:"medium",    act:"skip"},
   "weak":   {label:"Weak",    cls:"weak",      act:"skip"},
@@ -346,7 +348,7 @@ function advice(r){
   const t = T(r);
   if (t.act === "skip") return {cls:"skip", txt:"Skip", sub:"no edge"};
   const maxPay = Math.floor((t.rate - MARGIN) * 100 + 1e-6);   // fair value at the start, when price = target
-  if (t.act === "buy") return {cls:"buy", txt: tier(r) === "prime+" ? "Buy ★" : "Buy", sub:`up to ${maxPay}¢`};
+  if (t.act === "buy") return {cls:"buy", txt:"Buy", sub:`up to ${maxPay}¢`};
   return {cls:"maybe", txt:"Buy if cheap", sub:`up to ${maxPay}¢`};
 }
 
@@ -357,7 +359,7 @@ function renderTracker(tk, hist){
     return `<div><b>${n ? Math.round(100 * w / n) + "%" : "—"}</b><span>${name} · ${w}/${n} right</span></div>`;
   };
   document.getElementById("tstats").innerHTML =
-    tile(["prime+"],"Buy ★") + tile(["prime","strong"],"Buy") + tile(["medium","weak"],"Skip");
+    tile(["prime+","prime","strong"],"Buy (Strong)") + tile(["medium"],"Skip (Medium)") + tile(["weak"],"Skip (Weak)");
   const el = document.getElementById("trk");
   if (!hist.length){ el.innerHTML = `<div class="trow"><span></span><span class="muted">The first call posts at the next 15-minute mark.</span><span></span><span></span></div>`; return; }
   el.innerHTML = `<div class="trow head"><span>Window</span><span>Prediction</span><span>Advice</span><span style="text-align:right">Result</span></div>` +
