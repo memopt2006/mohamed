@@ -228,3 +228,23 @@ for each live call 2–6 minutes into its window (`btc15_signals.pm_up`).
 `public.btc15_pm_score` shows paper profit if every call had been bought at
 that price. The app shows this in the Prediction tracker. This measures
 profit live without any manual price entry.
+
+## Keep-or-stop review (2026-10-17)
+1,296 settled live windows since 2026-10-04.
+
+| | Result | Target |
+|---|---|---|
+| Buy calls (Strong family), all time | 80/162 (49.4%) | ~55%; stop below 52% |
+| Buy calls since 2026-10-11 | 37/79 (46.8%) | |
+| All calls, all time | 674/1296 (52.0%) | backtest ~52–53% |
+| All calls since 2026-10-11 | 307/616 (49.8%) | |
+| Profit at Polymarket prices, Buy calls | −$4.45 over 78 (avg price 51.9¢, 46% right) | > 0 |
+| Profit at Polymarket prices, Skip calls | +$3.17 over 533 (avg 49.9¢) | |
+
+System health: no missed windows since 2026-10-11, no failed cron runs in 6
+days, Polymarket price captured for 611/611 windows.
+
+**Decision: stop.** The pre-agreed rule (Buy calls below 52% after ~150) is
+triggered, and the Buy calls lost about 5.7¢ per contract at real market
+prices. The 55% edge seen in backtests didn't show up live once the market's
+price is taken into account.
